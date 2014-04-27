@@ -1,0 +1,125 @@
+CACHING in R: check things out with functions makeCachMatrix() and cacheSolve();
+
+first we need to create the list with the four functions by calling makeCacheMatrix():
+
+we call makeCacheMatrix() directly from the prompt
+this creates L4FUN in the workspace (i.e. the parent dir of makeCacheMatrix())
+in case we assign the output to a variable (e.g. List) we'll get both L4FUN and List
+
+List <- makeCacheMatrix()
+
+lets check what now populates the workspace:
+[1] "cacheSolve"      "L4FUN"           "List"            "makeCacheMatrix"
+
+the function call created L4FUN (by default) and File (by demand) in the workspace
+L4FUN (List) is a list containing the 4 functions created in the environment of makeCacheMatrix()
+these four functions still remember where the environment is where they were born
+and this environment still is in the search pathes of these four functions:
+
+e.g. environment of L4FUN$get():
+str(environment(L4FUN$get))
+<environment: 0x04be86fc> 
+
+the environment of List$get() matches that of L4FUN$get() etc.:
+str(environment(List$get))
+<environment: 0x04be86fc> 
+
+re-running makeCacheMatrix() will change L4FUN but not List:
+
+makeCacheMatrix()
+
+now the environment of L4FUN$get() reads:
+str(environment(L4FUN$get))
+<environment: 0x048a5e3c> 
+
+and here again that of List$get() which now mis-matches that of L4FUN$get() etc.:
+str(environment(List$get))
+<environment: 0x04be86fc> 
+
+the objects e.g. in L4FUN$get()'s environment are:
+print(ls(environment(L4FUN$get)))
+[1] "get"        "getinverse" "mi"         "set"        "setinverse" "x"         
+
+what is the content of the cached input (the default: matrix())?
+print(L4FUN$get())
+     [,1]
+[1,]   NA
+
+check the content of mi in the environment of these four functions
+call L4FUN$getinverse and print mi:
+print(L4FUN$getinverse())
+NULL
+
+now invert the default value for x (i.e. matrix()):
+invM.default <- cacheSolve()
+cacheSolve() uses x = L4FUN, new = F, and y = matrix() by default
+as new = FALSE, y will be ignored
+inverted default matrix():      [,1]
+[1,]   NA
+
+ change input to matrix(NaN) and invert it:
+invM.NaN <- cacheSolve(L4FUN, new = TRUE, y = matrix(NaN))
+inverted matrix(NaN):      [,1]
+[1,]  NaN
+
+did x change? lets retrieve it from cache
+x now contains:
+     [,1]
+[1,]  NaN
+the content of x changed from NA to NaN due to the call of L4FUN$set(y) in cacheSolve()
+
+did the content of mi (our cache for the inverted matrix) change?
+now the cached value reads:
+     [,1]
+[1,]  NaN
+Yep, it got updated as well, here by L4FUN$setinverse()
+
+
+give matrix(Inf) a try:
+inverted matrix(Inf): NULL
+
+or a scalar:
+inverted matrix(1):      [,1]
+[1,]    1
+
+a character:
+inverted matrix(letters[1]): NULL
+
+a single FALSE:
+inverted matrix(FALSE): NULL
+
+or 3 x 3 logical array:
+inverted matrix(T,3,3): NULL
+
+now let's try a non-square matrix: 1st round
+invM.nsq.first <- cacheSolve(L4FUN, TRUE, nsq)
+inverted matrix (500000 x 2): NULL
+
+let's try the non-square matrix again: 2nd round on the same beast as above
+invM.nsq.second <- cacheSolve()
+inverted matrix (500000 x 2): NULL
+
+feed in a square matrix that will work:
+First round on square matrix 1:
+invM.sq1.first <- cacheSolve(new = TRUE, y = sq1)
+str(invM.sq1.first):
+ num [1:1000, 1:1000] -0.0262 -0.00428 -0.01465 0.00383 -0.02635 ...
+the first round of matrix sq1 inversion (1000 x 1000) took: 11.45s
+
+Second round on square matrix 1:
+re-run cacheSolve() for the same matrix using just default values:
+invM.sq1.second <- cacheSolve()
+str(invM.sq1.second):
+ num [1:1000, 1:1000] -0.0262 -0.00428 -0.01465 0.00383 -0.02635 ...
+second round of matrix sq1 inversion - read out cached inverted matrix - took: 0s
+
+and now invert a differnt matrix:
+invM.sq2 <- cacheSolve(new = TRUE, y = sq2)
+str(invM.sq2):
+ num [1:1000, 1:1000] -0.00186 0.02634 -0.03807 0.00331 0.0127 ...
+input matrix has changed to sq2 - inversion took: 11.52s
+
+Cheers,
+Harry
+
+[1] "2014-04-27 17:12:46 CEST"
